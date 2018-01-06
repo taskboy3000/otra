@@ -1,0 +1,11 @@
+requires 'Digest::MD5';
+requires 'File::Slurp';
+requires 'Getopt::Long';
+requires 'HTTP::Date';
+requires 'JSON';
+requires 'LWP';
+requires 'Moo';
+requires 'Parallel::ForkManager';
+requires 'Time::HiRes';
+requires 'XML::Feed';
+requires 'Tk' => '<= 804.032';

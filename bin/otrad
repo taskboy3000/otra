@@ -1,0 +1,67 @@
+#!/usr/bin/env perl
+# -*- cperl -*-
+#
+# otrad daemon
+#   Takes care of periodically fetching feeds and running maintenance
+#   for the app.
+#
+# Copyright Joe Johnston <jjohn@taskboy.com>
+#
+# See LICENSE.txt
+#
+use strict;
+use warnings;
+
+use FindBin;
+BEGIN { $::OTRA_ROOT = "$FindBin::Bin/../"; }
+
+use lib("$::OTRA_ROOT/lib", "$::OTRA_ROOT/local/lib/perl5");
+
+use Getopt::Long;
+use Otra::Daemon;
+
+Main();
+exit;
+
+
+#-----------------------
+# Subroutines
+#-----------------------
+sub Main {
+    my $opts = get_usage();
+    my $Daemon = Otra::Daemon->new(%$opts);
+    $Daemon->run;
+}
+
+
+sub get_usage {
+    my %opts;
+    my %opt_table = (
+                     'h', => \$opts{usage},
+                     'install_dir' => \$opts{install_dir},
+                    );
+
+    GetOptions(%opt_table);
+
+    if ($opts{'usage'}) {
+        print usage();
+        exit;
+    }
+
+    $opts{install_dir} ||= $::OTRA_ROOT;
+    return \%opts;
+}
+
+
+sub usage {
+    return qq[$0 - Otra daemon
+
+USAGE:
+
+   $0 [OPTIONS]
+
+OPTIONS:
+
+ h - This screen
+];
+}

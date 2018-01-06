@@ -1,0 +1,18 @@
+[
+    { "name": "Reuters",
+      "group": "News",
+      "url": "http://feeds.reuters.com/reuters/topNews?irpc=69"
+    },
+    { "name": "Bloomberg",
+      "group": "News",
+      "url": "http://www.newslookup.com/rss/business/bloomberg.rss"
+    },
+    { "name": "Space.com",
+      "group": "Science",
+      "url": "http://www.space.com/syn/space.xml"
+    },
+    { "name": "Lovely UI",
+      "group": "App Design",
+      "url": "http://www.lovelyui.com/rss"
+    }
+]

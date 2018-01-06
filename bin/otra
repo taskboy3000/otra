@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+# -*- cperl -*-
+#
+# An RSS Reader built with Tk and Perl
+#
+# Joe Johnston <jjohn@taskboy.com>
+
+use strict;
+use warnings;
+use FindBin;
+BEGIN { $::OTRA_ROOT = "$FindBin::Bin/../"; }
+
+use lib("$::OTRA_ROOT/lib", "$::OTRA_ROOT/local/lib/perl5");
+use Otra::App;
+
+Main();
+exit;
+#-----------------------
+# Subroutines
+#-----------------------
+sub Main {
+    my $app = Otra::App->new(install_dir => $::OTRA_ROOT);
+    $app->start;
+}
