@@ -13,7 +13,7 @@ use strict;
 use warnings;
 
 use FindBin;
-BEGIN { $::OTRA_ROOT = "$FindBin::Bin/../"; }
+BEGIN { $::OTRA_ROOT = "$FindBin::Bin/.."; }
 
 use lib("$::OTRA_ROOT/lib", "$::OTRA_ROOT/local/lib/perl5");
 

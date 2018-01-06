@@ -16,6 +16,7 @@ use JSON;
 use LWP::UserAgent;
 use Parallel::ForkManager;
 use POSIX ('setsid', 'strftime');
+use Otra::Schema;
 use Time::HiRes;
 
 #------------
@@ -52,6 +53,15 @@ sub _build_feed_dir {
 
 has feeds_catalog => (is => 'rw', default => sub { [] });
 
+has schema => (is => 'ro', lazy => 1, builder => 1);
+sub _build_schema {
+    my ($self) = @_;
+    Otra::Schema->new(install_dir => $self->install_dir);
+}
+
+#--------------
+# Methods
+#--------------
 sub run {
     my ($self) = @_;
 
@@ -59,8 +69,12 @@ sub run {
 
     $self->daemonize() if !$ENV{DEBUG};
 
+    if (!$self->schema->is_installed) {
+        $self->schema->install();
+    }
+
     my $update_catalog_deadline = time();
-    my $update_catalog_tick = 60;
+    my $update_catalog_tick = 60*5;
 
     while (1) {
         my $now = time();

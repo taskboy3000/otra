@@ -1,3 +1,6 @@
+requires 'DBI';
+requires 'DBIx::Lite';
+requires 'DBD::SQLite';
 requires 'Digest::MD5';
 requires 'File::Slurp';
 requires 'Getopt::Long';
@@ -7,5 +10,6 @@ requires 'LWP';
 requires 'Moo';
 requires 'Parallel::ForkManager';
 requires 'Time::HiRes';
+requires 'Data::GUID';
 requires 'XML::Feed';
-requires 'Tk' => '<= 804.032';
+# requires 'Tk' => '<= 804.032';

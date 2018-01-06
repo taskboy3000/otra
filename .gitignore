@@ -1,2 +1,9 @@
 *~
+cpanfile.snapshot
+data/*db
+feeds/*.etag
+feeds/*.expires
+feeds/*xml
 local/
+logs/*log
+logs/*pid
