@@ -149,7 +149,7 @@ sub fetch_feed {
     $ua->agent("Otra/1.0");
     $ua->timeout(10);
 
-    $self->log("Feed $url");
+    $self->log("Feed URL: $url");
 
     if (defined $etag) {
         my $response = $ua->head($url);
@@ -157,8 +157,10 @@ sub fetch_feed {
         if ($response->is_success) {
             my $this_etag = $response->header("ETag");
             if (defined $this_etag && $this_etag eq $etag) {
-                $self->log("Feed $url has not changed");
+                $self->log("Feed '$name' has not changed");
                 return;
+            } else {
+                $self->log("Feed '$name' has a new ETag " . $response->header("Etag"));
             }
 
         } else {
@@ -168,31 +170,20 @@ sub fetch_feed {
     }
 
     if (defined $expires) {
-        my $response = $ua->head($url);
-
-        if ($response->is_success) {
-            my $this_expires = $response->header("Expires");
-            if (defined $this_expires) {
-                eval {
-                    $this_expires = str2time($this_expires);
-                    my $now = strftime("%s", gmtime());
-                    if ($this_expires > $now) {
-                        $self->log("Feed $url has not expired yet");
-                        return;
-                    }
-                };
-
-        } else {
-            $self->log("HEAD '$url' failed: " . $response->status_line);
+        my $now = time();
+        if ($expires > $now) {
+            $self->log("Feed '$name' has not yet expired");
             return;
+        } else {
+            $self->log(sprintf("Feed 'name' expired %d seconds ago", ($now - $expires)));
         }
-
     }
+
     my $response = $ua->get($url);
 
     if ($response->is_success) {
         write_file($this_feed_file, $response->content);
-        $self->log(sprintf("Wrote $md5.xml: %0.2f KB; Fetch took %0.2f seconds",
+        $self->log(sprintf("Caching feed '$name' with $md5.xml: %0.2f KB; Fetch took %0.2f seconds",
                            (-s $this_feed_file)/1024.0,
                            ((Time::HiRes::time() - $start)/10)
                           )
@@ -200,8 +191,12 @@ sub fetch_feed {
 
         # Write out etag to file
         if ($response->header("Expires")) {
-            write_file($feed_expires, time2str($response->header("Expires")));
+            my $expiry = $response->header("Expires");
+            my $expiry_ts = str2time($expiry);
+            $self->log("Feed '$name' expires: $expiry [$expiry_ts]");
+            write_file($feed_expires, $expiry_ts);
         } elsif ($response->header("ETag")) {
+            $self->log("Feed '$name' has an ETag of " . $response->header("ETag"));
             write_file($feed_etag, $response->header("ETag"));
         }
     } else {
@@ -213,12 +208,14 @@ sub fetch_feed {
 sub log {
     my ($self) = shift;
 
-    if (-s $self->log_file > 2_000_000) {
-        my $rotate = $self->log_file . ".1";
-        if (-e $rotate) {
-            unlink $rotate;
+    if (-e $self->log_file) {
+        if (-s $self->log_file > 2_000_000) {
+            my $rotate = $self->log_file . ".1";
+            if (-e $rotate) {
+                unlink $rotate;
+            }
+            rename $self->log_file, $rotate;
         }
-        rename $self->log_file, $rotate;
     }
 
     my $msg = sprintf("%s %s\n", scalar(localtime()), join(" ", @_));

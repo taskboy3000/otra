@@ -1,3 +1,4 @@
+# -*- cperl -*-
 package Otra::App;
 use strict;
 use warnings;
@@ -48,12 +49,14 @@ sub daemonize {
 sub log {
     my ($self) = shift;
 
-    if (-s $self->log_file > 2_000_000) {
-        my $rotate = $self->log_file . ".1";
-        if (-e $rotate) {
-            unlink $rotate;
+    if (-e $self->log_file) {
+        if (-s $self->log_file > 2_000_000) {
+            my $rotate = $self->log_file . ".1";
+            if (-e $rotate) {
+                unlink $rotate;
+            }
+            rename $self->log_file, $rotate;
         }
-        rename $self->log_file, $rotate;
     }
 
     my $msg = sprintf("%s %s\n", scalar(localtime()), join(" ", @_));
