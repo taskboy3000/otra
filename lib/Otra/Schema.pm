@@ -51,7 +51,13 @@ sub _build_orm {
 #------------
 sub db {
     my ($self) = @_;
-    my $dbh = DBI->connect("dbi:SQLite:dbname=" . $self->db_name) or die("Connect: $DBI::errstr");
+    my %options = (AutoCommit => 1,
+                   RaiseError => 0,
+                   PrintError => 0,
+                   sqlite_see_if_its_a_number => 1,
+                  );
+    my $dbh = DBI->connect("dbi:SQLite:dbname=" . $self->db_name, \%options)
+      or die("Connect: $DBI::errstr");
     return $dbh;
 }
 
@@ -87,18 +93,28 @@ sub save {
     delete $data->{created_at};
     delete $data->{updated_at};
 
+    my $now = time();
     if (exists $data->{id}) {
         # update
         my $id = delete $data->{id};
-        $data->{updated_at} = time();
-        $self->orm->table($table)->search({id => $id})->update($data) or $self->log("Update to $table failed");
-        return $id;
+        $data->{updated_at} = $now;
+        if ($self->orm->table($table)->search({id => $id})->update($data)) {
+            return $id;
+        }
+        $self->log("Update to $table failed: " . $self->orm->dbh->errstr);
+        return;
     } else {
         # insert
         $data->{id} = $self->uuid;
-        $data->{created_at} = $data->{updated_at} = time();
-        $self->orm->table($table)->insert($data) or $self->log("Insert to $table failed");
-        return $data->{id};
+
+        $data->{created_at} = $now;
+        $data->{updated_at} = $now;
+        if ($self->orm->table($table)->insert($data)) {
+            return $data->{id};
+        }
+
+        $self->log("Insert to $table failed: " . $self->orm->dbh->errstr);
+        return;
     }
 }
 

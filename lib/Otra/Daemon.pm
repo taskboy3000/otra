@@ -18,6 +18,7 @@ use Parallel::ForkManager;
 use POSIX ('setsid', 'strftime');
 use Otra::Schema;
 use Time::HiRes;
+use XML::Feed;
 
 #------------
 # Attributes
@@ -128,7 +129,9 @@ sub update_catalog {
 
     $self->feeds_catalog($feeds);
 
-    my $pm = Parallel::ForkManager->new(4);
+    my $max_children = $ENV{DEBUG} ? 0 : 4;
+
+    my $pm = Parallel::ForkManager->new($max_children);
 
     for my $feed (@$feeds) {
         $pm->start and next;
@@ -213,6 +216,8 @@ sub fetch_feed {
             $self->log("Feed '$name' has an ETag of " . $response->header("ETag"));
             write_file($feed_etag, $response->header("ETag"));
         }
+
+        $self->import_feed($name => $response->content);
     } else {
         $self->log("GET '$url' failed: " . $response->status_line);
     }
@@ -234,7 +239,59 @@ sub log {
 
     my $msg = sprintf("%s %s\n", scalar(localtime()), join(" ", @_));
 
+    if ($ENV{DEBUG}) {
+        print STDERR $msg;
+    }
+
     append_file($self->log_file, $msg);
+}
+
+
+sub import_feed {
+    my ($self, $name => $feed_xml) = @_;
+    return if !$name || !$feed_xml;
+
+    my $P = XML::Feed->parse(\$feed_xml);
+    if (!$P) {
+        $self->log("Could not parse feed for '$name': " . XML::Feed->errstr);
+        return;
+    }
+
+    my $schema = $self->schema;
+    # Find or create this channel
+    my $channel = $schema->orm->table("channels")->search({ name => $P->title })->single;
+    if (!$channel) {
+        $self->log("Creating channel " . $P->title);
+        my $id = $schema->save("channels" => { name => $P->title, url => $P->link });
+        $channel = $schema->orm->table("channels")->search({id => $id})->single;
+    }
+
+    my $found = 0;
+    for my $entry ($P->entries) {
+        my $found = $schema->orm->table("articles")->search({url => $entry->link});
+        next if $found->count;
+
+        my $pub_date = $entry->issued || $entry->modified || 0;
+
+        if ($pub_date) {
+            $pub_date = str2time($pub_date);
+        }
+
+        my $rc = $schema->save("articles" => {
+                                              channel_id => $channel->id,
+                                              url => $entry->link,
+                                              title => $entry->title,
+                                              description => $entry->content->body, # need to parse
+                                              published_at => $pub_date,
+                                             });
+        if (!$rc) {
+            $self->log("Could not add article");
+        } else {
+            $found += 1;
+        }
+    }
+
+    $self->log(sprintf("Found %d new articles", $found));
 }
 
 
