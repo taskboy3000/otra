@@ -266,7 +266,7 @@ sub import_feed {
         $channel = $schema->orm->table("channels")->search({id => $id})->single;
     }
 
-    my $found = 0;
+    my $seen = 0;
     for my $entry ($P->entries) {
         my $found = $schema->orm->table("articles")->search({url => $entry->link});
         next if $found->count;
@@ -287,11 +287,11 @@ sub import_feed {
         if (!$rc) {
             $self->log("Could not add article");
         } else {
-            $found += 1;
+            $seen++;
         }
     }
 
-    $self->log(sprintf("Found %d new articles", $found));
+    $self->log(sprintf("Found %d new articles", $seen));
 }
 
 
